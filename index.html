@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acessibilidade Urbana</title>
+  <style>
+    :root {
+      --bg-color: #f4f4f9;
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --text-color: #333333;
+      --primary-color: #0056b3;
+      --button-text: #ffffff;
+      --bg-image: none;
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #121212;
+      --card-bg: rgba(30, 30, 30, 0.85);
+      --text-color: #f4f4f9;
+      --primary-color: #4a00e0;
+      --button-text: #ffffff;
+      --bg-image: url('NOME_DO_SEU_GIF.gif');
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--bg-color);
+      background-image: var(--bg-image);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .app-container {
+      max-width: 500px;
+      margin: 40px auto;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      margin-bottom: 20px;
+      backdrop-filter: blur(5px);
+    }
+
+    .hidden { display: none !important; }
+
+    form, .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    input, select, button {
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      width: 100%;
+    }
+
+    button {
+      background-color: var(--primary-color);
+      color: var(--button-text);
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    /* Notificação em Tempo Real */
+    #notification-banner {
+      background-color: #ff9800;
+      color: #fff;
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-weight: bold;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.8; }
+      50% { opacity: 1; }
+      100% { opacity: 0.8; }
+    }
+
+    /* Botão Flutuante */
+    #theme-toggle {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: auto;
+      z-index: 1000;
+      border-radius: 30px;
+      padding: 12px 18px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    /* Caixa de Testes */
+    .test-box {
+      background-color: rgba(0, 0, 0, 0.05);
+      border: 1px dashed #666;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <h1>Acessibilidade Urbana</h1>
+    </header>
+
+    <main id="main-content">
+      <!-- Banner de Notificação em Tempo Real -->
+      <div id="notification-banner" class="hidden"></div>
+
+      <!-- Cadastro -->
+      <section id="auth-section" class="card">
+        <h2>Cadastro de Pessoa com Deficiência</h2>
+        <form id="register-form">
+          <div class="form-group">
+            <label for="name">Nome Completo:</label>
+            <input type="text" id="name" required placeholder="Digite seu nome">
+          </div>
+
+          <div class="form-group">
+            <label for="disability">Tipo de Deficiência:</label>
+            <select id="disability" required>
+              <option value="">Selecione...</option>
+              <option value="visual">Deficiência Visual</option>
+              <option value="auditiva">Deficiência Auditiva</option>
+              <option value="fisico-motora">Deficiência Físico-Motora</option>
+              <option value="intelectual">Deficiência Intelectual</option>
+              <option value="multipla">Deficiência Múltipla</option>
+            </select>
+          </div>
+
+          <button type="submit">Cadastrar e Entrar</button>
+        </form>
+      </section>
+
+      <!-- Painel Principal -->
+      <section id="dashboard-section" class="card hidden">
+        <h2>Painel Principal</h2>
+        <p id="user-welcome"></p>
+        <div id="accessibility-features">
+          <p><em>Carregando módulos de acessibilidade... (Lazy Loading)</em></p>
+        </div>
+        <button id="logout-btn" style="margin-top: 15px;">Sair</button>
+
+        <!-- Seção de Testes do Sistema -->
+        <div class="test-box">
+          <strong>Painel do QA (Testes):</strong><br>
+          <button id="run-tests-btn" style="margin-top: 8px;">Executar Testes Automáticos</button>
+          <div id="test-results" style="margin-top: 8px;"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <button id="theme-toggle">Modo Escuro</button>
+
+  <script>
+    const AppState = {
+      user: null,
+      setUser(userData) {
+        this.user = userData;
+        if (userData) {
+          localStorage.setItem('pcd_user', JSON.stringify(userData));
+        } else {
+          localStorage.removeItem('pcd_user');
+        }
+        render();
+      },
+      init() {
+        const saved = localStorage.getItem('pcd_user');
+        if (saved) this.user = JSON.parse(saved);
+        render();
+      }
+    };
+
+    const authSection = document.getElementById('auth-section');
+    const dashboardSection = document.getElementById('dashboard-section');
+    const registerForm = document.getElementById('register-form');
+    const userWelcome = document.getElementById('user-welcome');
+    const featuresContainer = document.getElementById('accessibility-features');
+    const logoutBtn = document.getElementById('logout-btn');
+    const themeToggle = document.getElementById('theme-toggle');
+    const notificationBanner = document.getElementById('notification-banner');
+
+    registerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const disability = document.getElementById('disability').value;
+      AppState.setUser({ name, disability });
+    });
+
+    logoutBtn.addEventListener('click', () => AppState.setUser(null));
+
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.body.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.body.setAttribute('data-theme', newTheme);
+      themeToggle.textContent = newTheme === 'dark' ? 'Modo Claro' : 'Modo Escuro';
+    });
+
+    // Simulação de Notificação em Tempo Real
+    function triggerNotification() {
+      const alerts = [
+        "⚠️ Semáforo sonoro da Av. Principal em manutenção.",
+        "ℹ️ Nova rampa acessível liberada na Rua Central.",
+        "⚠️ Tempo de travessia estendido ativado no Cruzamento 4."
+      ];
+      const randomAlert = alerts[Math.floor(Math.random() * alerts.length)];
+      notificationBanner.textContent = randomAlert;
+      notificationBanner.classList.remove('hidden');
+    }
+
+    // Carregamento Assíncrono (Lazy Loading de Recursos)
+    async function loadAsyncResources(disability) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          let content = '';
+          switch (disability) {
+            case 'visual':
+              content = '<p>🔍 <strong>Recursos para Deficiência Visual:</strong> Leitores ativados, semáforos sonoros e áudio-guias de rotas.</p>';
+              break;
+            case 'auditiva':
+              content = '<p>🤟 <strong>Recursos para Deficiência Auditiva:</strong> Alertas visuais por pisca-alerta e mapas totalmente gráficos.</p>';
+              break;
+            case 'fisico-motora':
+              content = '<p>♿ <strong>Recursos para Deficiência Físico-Motora:</strong> Mapeamento de rampas, elevadores e calçadas rebaixadas.</p>';
+              break;
+            default:
+              content = '<p>ℹ️ <strong>Recursos Gerais:</strong> Tempo estendido em semáforos e rotas acessíveis.</p>';
+          }
+          resolve(content);
+        }, 800); // Delay de 800ms para simular carregamento dinâmico
+      });
+    }
+
+    async function render() {
+      if (AppState.user) {
+        authSection.classList.add('hidden');
+        dashboardSection.classList.remove('hidden');
+        userWelcome.textContent = `Olá, ${AppState.user.name}!`;
+
+        // Ativa Notificação e Carregamento Assíncrono
+        triggerNotification();
+        featuresContainer.innerHTML = '<p><em>Carregando recursos...</em></p>';
+        const asyncContent = await loadAsyncResources(AppState.user.disability);
+        featuresContainer.innerHTML = asyncContent;
+      } else {
+        authSection.classList.remove('hidden');
+        dashboardSection.classList.add('hidden');
+        notificationBanner.classList.add('hidden');
+      }
+    }
+
+    // Testes Unitários Automáticos Simples (QA)
+    document.getElementById('run-tests-btn').addEventListener('click', () => {
+      const testResults = document.getElementById('test-results');
+      let logs = [];
+
+      // Teste 1: Validação da Terminologia Correcta
+      const optionText = document.querySelector('option[value="visual"]').textContent;
+      if (optionText.includes("Deficiência Visual")) {
+        logs.push("✅ Teste 1: Terminologia correta ('Pessoa com Deficiência').");
+      } else {
+        logs.push("❌ Teste 1 Falhou.");
+      }
+
+      // Teste 2: Persistência no LocalStorage
+      if (localStorage.getItem('pcd_user')) {
+        logs.push("✅ Teste 2: Salvamento no LocalStorage validado com sucesso.");
+      } else {
+        logs.push("❌ Teste 2 Falhou: Usuário não armazenado.");
+      }
+
+      testResults.innerHTML = logs.join('<br>');
+    });
+
+    AppState.init();
+  </script>
+</body>
+</html>
